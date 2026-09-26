@@ -1,4 +1,5 @@
 import streamlit as st
+from database.db import initialize_database, save_profile
 from services.calorie_service import(
     calculate_bmr,
     calculate_tdee,
@@ -11,6 +12,7 @@ st.set_page_config(
     page_title = "NutriSnap",
     page_icon = "🥗"
 )
+initialize_database()
 
 # Sidebar
 st.sidebar.title("🥗 NutriSnap")
