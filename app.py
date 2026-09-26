@@ -1,5 +1,5 @@
 import streamlit as st
-from database.db import initialize_database, save_profile
+from database.db import initialize_database, save_profile, get_profile
 from services.calorie_service import(
     calculate_bmr,
     calculate_tdee,
@@ -13,6 +13,7 @@ st.set_page_config(
     page_icon = "🥗"
 )
 initialize_database()
+saved_profile = get_profile()
 
 # Sidebar
 st.sidebar.title("🥗 NutriSnap")
@@ -48,18 +49,22 @@ elif page == "My Profile":
             "Age",
             min_value=13,
             max_value=100,
-            value=21,
+            value= saved_profile[0] if saved_profile else 21,
             step=1
         )
+        sex_options = ["Male", "Female"]
         sex = st.selectbox(
             "Sex",
-            ["Male", "Female"]
+            sex_options,
+            index=sex_options.index(saved_profile[1]) 
+            if saved_profile and saved_profile[1] in sex_options 
+            else 0
         )
         height = st.number_input(
             "Height (cm)",
             min_value=100.0,
             max_value=250.0,
-            value=170.0,
+            value=float(saved_profile[2]) if saved_profile else 170.0,
             step=1.0
         )
 
@@ -68,26 +73,38 @@ elif page == "My Profile":
             "Weight (kg)",
             min_value=30.0,
             max_value=300.0,
-            value=70.0,
+            value=float(saved_profile[3]) if saved_profile else 70.0,
             step=0.5
         )
-        activity_level = st.selectbox(
-            "Activity Level",
-            [
-                "Sedentary",
+        activity_options = [
+                 "Sedentary",
                 "Lightly Active",
                 "Moderately Active",
                 "Very Active",
                 "Extra Active"
-            ]
+                ]
+        activity_level = st.selectbox(
+            "Activity Level",
+            activity_options,
+            index=(
+                activity_options.index(saved_profile[4])
+                if saved_profile and saved_profile[4] in activity_options
+                else 0
+            )
         )
+        goal_options = [
+            "Lose Weight",
+            "Maintain Weight",
+            "Gain Weight"
+        ]
         goal = st.selectbox(
             "Goal",
-            [
-                "Lose Weight",
-                "Maintain Weight",
-                "Gain Weight"
-            ]
+            goal_options,
+            index=(
+                goal_options.index(saved_profile[5])
+                if saved_profile and saved_profile[5] in goal_options
+                else 0
+            )
         )
     if st.button("Calculate My Requirements"):
 
@@ -108,6 +125,20 @@ elif page == "My Profile":
         macros = calculate_macros(
             calorie_target,
             weight
+        )
+        save_profile(
+            age,
+            sex,
+            height,
+            weight,
+            activity_level,
+            goal,
+            bmr,
+            tdee,
+            calorie_target,
+            macros["protein"],
+            macros["carbs"],
+            macros["fat"]
         )
         st.success("Your nutrition profile has been calculated!")
         st.subheader("📊 Your Daily Requirements")
