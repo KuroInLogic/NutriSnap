@@ -6,4 +6,9 @@ st.set_page_config(
 )
 
 st.title("🥗 NutriSnap")
-st.write("NutriSnap is working.")
+st.subheader("AI-Powered Personal Nutrition Assistant")
+
+st.write(
+    "Analyze your meals, understand their nutritional content, "
+    "and receive personalized nutrition insights."
+)
