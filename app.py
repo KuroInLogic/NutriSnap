@@ -1,4 +1,5 @@
 import streamlit as st
+from PIL import Image
 from database.db import initialize_database, save_profile, get_profile
 from services.calorie_service import(
     calculate_bmr,
@@ -7,6 +8,7 @@ from services.calorie_service import(
     calculate_macros
 )
 from services.nutrition_service import find_food
+from services.ai_service import analyze_food_image
 
 # Page configuration
 st.set_page_config(
@@ -187,119 +189,130 @@ elif page == "My Profile":
 
 # Meal Analysis Page
 elif page == "Meal Analysis":
-
     st.title("🍽️ Meal Analysis")
-
     st.write(
-        "Search for a food to view its nutritional information "
-        "from the NutriSnap nutrition database."
+        "Upload a photo of your meal to begin nutrition analysis."
     )
-
+    st.subheader("📸 Upload Meal Image")
+    uploaded_image = st.file_uploader(
+        "Choose a meal image",
+        type=["jpg", "jpeg", "png"]
+    )
+    if uploaded_image is not None:
+        image = Image.open(uploaded_image)
+        st.image(
+            image,
+            caption="Uploaded Meal",
+            width="stretch"
+        )
+        if st.button("🔍 Identify Food"):
+            with st.spinner("Analyzing your meal..."):
+                try:
+                    image_bytes = uploaded_image.getvalue()
+                    image_type = uploaded_image.type
+                    result = analyze_food_image(
+                        image_bytes,
+                        image_type
+                    )
+                    st.success("Food identified!")
+                    st.write(result)
+                except Exception as e:
+                    st.error(
+                        f"Unable to analyze the image: {e}"
+                    )
+        st.success(
+            "Meal image uploaded successfully!"
+        )
+        st.info(
+            "AI food recognition will be connected here next."
+        )
+    st.divider()
+    st.subheader("🔎 Test Nutrition Database")
+    st.write(
+        "You can currently search the nutrition database "
+        "manually while AI recognition is being developed."
+    )
     food_name = st.text_input(
         "Enter a food or dish name",
-        placeholder="Example: Chicken Biryani"
+        placeholder="Example: Chicken Sandwich"
     )
-
     if st.button("Analyze Nutrition"):
-
         if not food_name.strip():
-
-            st.warning("Please enter a food or dish name.")
-
+            st.warning(
+                "Please enter a food or dish name."
+            )
         else:
-
             result = find_food(food_name)
-
             if result is None:
-
                 st.error(
                     "Food not found in the nutrition database."
                 )
-
             else:
-
                 st.success(
                     f"Food found: {result['Dish Name']}"
                 )
-
                 st.subheader("📊 Nutrition Information")
-
                 col1, col2, col3 = st.columns(3)
-
                 with col1:
                     st.metric(
                         "Calories",
                         f"{result['Calories (kcal)']} kcal"
                     )
-
                 with col2:
                     st.metric(
                         "Protein",
                         f"{result['Protein (g)']} g"
                     )
-
                 with col3:
                     st.metric(
                         "Carbohydrates",
                         f"{result['Carbohydrates (g)']} g"
                     )
-
                 col4, col5, col6 = st.columns(3)
-
                 with col4:
                     st.metric(
                         "Fat",
                         f"{result['Fats (g)']} g"
                     )
-
                 with col5:
                     st.metric(
                         "Fibre",
                         f"{result['Fibre (g)']} g"
                     )
-
                 with col6:
                     st.metric(
                         "Free Sugar",
                         f"{result['Free Sugar (g)']} g"
                     )
-
                 st.subheader("🧪 Micronutrients")
-
                 col7, col8, col9, col10 = st.columns(4)
-
                 with col7:
                     st.metric(
                         "Sodium",
                         f"{result['Sodium (mg)']} mg"
                     )
-
                 with col8:
                     st.metric(
                         "Calcium",
                         f"{result['Calcium (mg)']} mg"
                     )
-
                 with col9:
                     st.metric(
                         "Iron",
                         f"{result['Iron (mg)']} mg"
                     )
-
                 with col10:
                     st.metric(
                         "Vitamin C",
                         f"{result['Vitamin C (mg)']} mg"
                     )
-
                 st.metric(
                     "Folate",
                     f"{result['Folate (µg)']} µg"
                 )
-
                 st.caption(
-                    "Nutrition values are retrieved from the NutriSnap "
-                    "nutrition dataset."
+                    "Nutrition values are retrieved from the "
+                    "NutriSnap nutrition dataset."
                 )
 
 # History Page
