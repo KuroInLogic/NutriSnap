@@ -6,6 +6,7 @@ from services.calorie_service import(
     calculate_calorie_target,
     calculate_macros
 )
+from services.nutrition_service import find_food
 
 # Page configuration
 st.set_page_config(
@@ -186,10 +187,120 @@ elif page == "My Profile":
 
 # Meal Analysis Page
 elif page == "Meal Analysis":
-    st.title("📸 Meal Analysis")
-    st.info(
-        "AI-powered food recognition will be added here."
+
+    st.title("🍽️ Meal Analysis")
+
+    st.write(
+        "Search for a food to view its nutritional information "
+        "from the NutriSnap nutrition database."
     )
+
+    food_name = st.text_input(
+        "Enter a food or dish name",
+        placeholder="Example: Chicken Biryani"
+    )
+
+    if st.button("Analyze Nutrition"):
+
+        if not food_name.strip():
+
+            st.warning("Please enter a food or dish name.")
+
+        else:
+
+            result = find_food(food_name)
+
+            if result is None:
+
+                st.error(
+                    "Food not found in the nutrition database."
+                )
+
+            else:
+
+                st.success(
+                    f"Food found: {result['Dish Name']}"
+                )
+
+                st.subheader("📊 Nutrition Information")
+
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.metric(
+                        "Calories",
+                        f"{result['Calories (kcal)']} kcal"
+                    )
+
+                with col2:
+                    st.metric(
+                        "Protein",
+                        f"{result['Protein (g)']} g"
+                    )
+
+                with col3:
+                    st.metric(
+                        "Carbohydrates",
+                        f"{result['Carbohydrates (g)']} g"
+                    )
+
+                col4, col5, col6 = st.columns(3)
+
+                with col4:
+                    st.metric(
+                        "Fat",
+                        f"{result['Fats (g)']} g"
+                    )
+
+                with col5:
+                    st.metric(
+                        "Fibre",
+                        f"{result['Fibre (g)']} g"
+                    )
+
+                with col6:
+                    st.metric(
+                        "Free Sugar",
+                        f"{result['Free Sugar (g)']} g"
+                    )
+
+                st.subheader("🧪 Micronutrients")
+
+                col7, col8, col9, col10 = st.columns(4)
+
+                with col7:
+                    st.metric(
+                        "Sodium",
+                        f"{result['Sodium (mg)']} mg"
+                    )
+
+                with col8:
+                    st.metric(
+                        "Calcium",
+                        f"{result['Calcium (mg)']} mg"
+                    )
+
+                with col9:
+                    st.metric(
+                        "Iron",
+                        f"{result['Iron (mg)']} mg"
+                    )
+
+                with col10:
+                    st.metric(
+                        "Vitamin C",
+                        f"{result['Vitamin C (mg)']} mg"
+                    )
+
+                st.metric(
+                    "Folate",
+                    f"{result['Folate (µg)']} µg"
+                )
+
+                st.caption(
+                    "Nutrition values are retrieved from the NutriSnap "
+                    "nutrition dataset."
+                )
 
 # History Page
 elif page == "History":
