@@ -7,7 +7,11 @@ from services.calorie_service import(
     calculate_calorie_target,
     calculate_macros
 )
-from services.nutrition_service import find_food
+from services.nutrition_service import (
+    find_food,
+    search_foods,
+    calculate_portion_nutrition
+)
 from services.ai_service import analyze_food_image
 
 # Page configuration
@@ -200,119 +204,188 @@ elif page == "Meal Analysis":
     )
     if uploaded_image is not None:
         image = Image.open(uploaded_image)
+
         st.image(
             image,
             caption="Uploaded Meal",
             width="stretch"
         )
+
         if st.button("🔍 Identify Food"):
+
             with st.spinner("Analyzing your meal..."):
                 try:
                     image_bytes = uploaded_image.getvalue()
                     image_type = uploaded_image.type
-                    result = analyze_food_image(
+
+                    ai_result = analyze_food_image(
                         image_bytes,
                         image_type
-                    )
+                        )
+
                     st.success("Food identified!")
-                    st.write(result)
+
+                    st.subheader("🤖 AI Food Recognition")
+
+                    lines = ai_result.splitlines()
+
+                    food_name_ai = ""
+                    confidence = ""
+
+                    for line in lines:
+                        if line.lower().startswith("food:"):
+                            food_name_ai = line.split(":", 1)[1].strip()
+
+                        elif line.lower().startswith("confidence:"):
+                            confidence = line.split(":", 1)[1].strip()
+
+                    if food_name_ai:
+
+                        st.write(
+                            f"**Detected Food:** {food_name_ai}"
+                        )
+
+                        if confidence:
+                            st.write(
+                                f"**AI Confidence:** {confidence}"
+                            )
+
+                        matches = search_foods(
+                            food_name_ai,
+                            limit=15
+                            )
+
+                        if matches:
+                            st.subheader(
+                                    "🔎 Possible Nutrition Database Matches"
+                            )
+                            st.session_state["food_matches"] = matches
+
+                        else:
+                            st.warning(
+                                "No matching food was found "
+                                "in the NutriSnap nutrition database."
+                            )
+
                 except Exception as e:
                     st.error(
                         f"Unable to analyze the image: {e}"
                     )
-        st.success(
-            "Meal image uploaded successfully!"
-        )
-        st.info(
-            "AI food recognition will be connected here next."
-        )
-    st.divider()
-    st.subheader("🔎 Test Nutrition Database")
-    st.write(
-        "You can currently search the nutrition database "
-        "manually while AI recognition is being developed."
-    )
-    food_name = st.text_input(
-        "Enter a food or dish name",
-        placeholder="Example: Chicken Sandwich"
-    )
-    if st.button("Analyze Nutrition"):
-        if not food_name.strip():
-            st.warning(
-                "Please enter a food or dish name."
+
+        # Food Selection
+        if "food_matches" in st.session_state:
+            matches = st.session_state["food_matches"]
+            # Best match suggested by the ranking system
+            suggested_food = matches[0]
+
+            st.subheader("Nutrition Database Match")
+            st.write(
+                f"**Suggested Food:** {suggested_food['Dish Name']}"
             )
-        else:
-            result = find_food(food_name)
-            if result is None:
-                st.error(
-                    "Food not found in the nutrition database."
-                )
-            else:
-                st.success(
-                    f"Food found: {result['Dish Name']}"
-                )
-                st.subheader("📊 Nutrition Information")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric(
-                        "Calories",
-                        f"{result['Calories (kcal)']} kcal"
+
+            # Use the best match by default
+            st.session_state["selected_food"] = suggested_food
+
+            # Allow the user to correct the suggestion if needed
+            if len(matches) > 1:
+                with st.expander("🔄 Not the correct food? Choose another"):
+
+                    match_names = [
+                        match["Dish Name"]
+                        for match in matches
+                    ]
+
+                    selected_food_name = st.selectbox(
+                        "Select the correct food:",
+                        match_names,
+                        key="alternative_food"
                     )
-                with col2:
-                    st.metric(
-                        "Protein",
-                        f"{result['Protein (g)']} g"
+
+                    selected_match = next(
+                        match for match in matches
+                        if match["Dish Name"] == selected_food_name
                     )
-                with col3:
-                    st.metric(
-                        "Carbohydrates",
-                        f"{result['Carbohydrates (g)']} g"
-                    )
-                col4, col5, col6 = st.columns(3)
-                with col4:
-                    st.metric(
-                        "Fat",
-                        f"{result['Fats (g)']} g"
-                    )
-                with col5:
-                    st.metric(
-                        "Fibre",
-                        f"{result['Fibre (g)']} g"
-                    )
-                with col6:
-                    st.metric(
-                        "Free Sugar",
-                        f"{result['Free Sugar (g)']} g"
-                    )
-                st.subheader("🧪 Micronutrients")
-                col7, col8, col9, col10 = st.columns(4)
-                with col7:
-                    st.metric(
-                        "Sodium",
-                        f"{result['Sodium (mg)']} mg"
-                    )
-                with col8:
-                    st.metric(
-                        "Calcium",
-                        f"{result['Calcium (mg)']} mg"
-                    )
-                with col9:
-                    st.metric(
-                        "Iron",
-                        f"{result['Iron (mg)']} mg"
-                    )
-                with col10:
-                    st.metric(
-                        "Vitamin C",
-                        f"{result['Vitamin C (mg)']} mg"
-                    )
+                    st.session_state["selected_food"] = selected_match
+
+
+    # Food Confirmation
+    if "selected_food" in st.session_state:
+
+        st.subheader("✅ Confirm Food")
+
+        selected_food = st.session_state["selected_food"]
+
+        st.write(
+            f"**Selected:** {selected_food['Dish Name']}"
+        )
+
+        if st.button("✅ Confirm Food"):
+
+            st.session_state["confirmed_food"] = selected_food
+
+            st.success(
+                f"Confirmed: {selected_food['Dish Name']}"
+            )
+
+
+    # Portion Size and Nutrition Calculation
+    if "confirmed_food" in st.session_state:
+
+        confirmed_food = st.session_state["confirmed_food"]
+
+        st.divider()
+        st.subheader("⚖️ Portion Size")
+
+        portion_grams = st.number_input(
+            "Enter portion size (grams)",
+            min_value=1.0,
+            value=100.0,
+            step=10.0
+        )
+
+        if st.button("🧮 Calculate Nutrition"):
+            nutrition = calculate_portion_nutrition(
+                confirmed_food,
+                portion_grams
+            )
+            st.subheader("🥗 Nutrition Information")
+            st.write(
+                f"**Food:** {confirmed_food['Dish Name']}"
+            )
+            st.write(
+                f"**Portion:** {portion_grams:.0f} g"
+            )
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
                 st.metric(
-                    "Folate",
-                    f"{result['Folate (µg)']} µg"
+                    "Calories",
+                    f"{nutrition['Calories']:.1f} kcal"
                 )
-                st.caption(
-                    "Nutrition values are retrieved from the "
-                    "NutriSnap nutrition dataset."
+                st.metric(
+                    "Protein",
+                    f"{nutrition['Protein']:.1f} g"
+                )
+
+            with col2:
+                st.metric(
+                    "Carbohydrates",
+                    f"{nutrition['Carbohydrates']:.1f} g"
+                )
+                st.metric(
+                    "Fat",
+                    f"{nutrition['Fat']:.1f} g"
+                )
+
+            with col3:
+                st.metric(
+                    "Fibre",
+                    f"{nutrition['Fibre']:.1f} g"
+                )
+                st.metric(
+                    "Free Sugar",
+                    f"{nutrition['Free Sugar']:.1f} g"
                 )
 
 # History Page
