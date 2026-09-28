@@ -187,3 +187,28 @@ def calculate_portion_nutrition(food_data, portion_grams):
     }
 
     return nutrition
+
+
+
+def compare_with_daily_targets(nutrition, calorie_target, macro_targets):
+    """
+    Compare a meal's nutrition with the user's daily targets.
+    Returns the percentage of each daily target consumed.
+    """
+
+    comparison = {
+        "Calories": round(
+            (nutrition["Calories"] / calorie_target) * 100, 1
+        ),
+        "Protein": round(
+            (nutrition["Protein"] / macro_targets["protein"]) * 100, 1
+        ),
+        "Carbohydrates": round(
+            (nutrition["Carbohydrates"] / macro_targets["carbs"]) * 100, 1
+        ),
+        "Fat": round(
+            (nutrition["Fat"] / macro_targets["fat"]) * 100, 1
+        )
+    }
+
+    return comparison

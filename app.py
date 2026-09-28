@@ -8,9 +8,11 @@ from services.calorie_service import(
     calculate_macros
 )
 from services.nutrition_service import (
+    load_nutrition_data,
     find_food,
     search_foods,
-    calculate_portion_nutrition
+    calculate_portion_nutrition,
+    compare_with_daily_targets
 )
 from services.ai_service import analyze_food_image
 
@@ -348,6 +350,61 @@ elif page == "Meal Analysis":
                 confirmed_food,
                 portion_grams
             )
+            
+            profile = get_profile()
+            if profile:
+                calorie_target = profile[8]
+
+                macro_targets = {
+                    "protein": profile[9],
+                    "carbs": profile[10],
+                    "fat": profile[11]
+                }
+
+                comparison = compare_with_daily_targets(
+                    nutrition,
+                    calorie_target,
+                    macro_targets
+                )
+
+                st.subheader("🎯 Your Daily Target Comparison")
+
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
+                    st.metric(
+                        "Calories",
+                        f"{comparison['Calories']}%",
+                        "of daily target"
+                    )
+
+                with col2:
+                    st.metric(
+                        "Protein",
+                        f"{comparison['Protein']}%",
+                        "of daily target"
+                    )
+
+                with col3:
+                    st.metric(
+                        "Carbohydrates",
+                        f"{comparison['Carbohydrates']}%",
+                        "of daily target"
+                    )
+
+                with col4:
+                    st.metric(
+                        "Fat",
+                        f"{comparison['Fat']}%",
+                        "of daily target"
+                    )
+
+            else:
+                st.info(
+                    "Please calculate your daily nutrition requirements "
+                    "in My Profile to see your personalized comparison."
+                )
+
             st.subheader("🥗 Nutrition Information")
             st.write(
                 f"**Food:** {confirmed_food['Dish Name']}"
